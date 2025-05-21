@@ -16,7 +16,7 @@
  */
 
 import { createReducer, on } from '@ngrx/store';
-import { ProvenanceEventListingState } from './index';
+import {Provenance, ProvenanceEventListingState, ProvenanceOptions, ProvenanceRequest} from './index';
 import {
     clearProvenanceRequest,
     deleteProvenanceQuerySuccess,
@@ -86,6 +86,19 @@ export const provenanceEventListingReducer = createReducer(
             }
         });
     }),
+/*    on(loadProvenanceSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const provenance = response.activeProvenance;
+            draftState.activeProvenance = provenance;
+
+            // if the query has finished save it as completed, the active query will be reset after deletion
+            if (provenance.finished) {
+                draftState.completedProvenance = provenance;
+                draftState.loadedTimestamp = provenance.results.generated;
+                draftState.status = 'success' as const;
+            }
+        });
+    }),*/
     on(deleteProvenanceQuerySuccess, (state) => ({
         ...state,
         activeProvenance: null
@@ -101,5 +114,16 @@ export const provenanceEventListingReducer = createReducer(
     on(provenanceApiError, (state) => ({
         ...state,
         status: 'error' as const
+    //}))
+
+ /*   on(loadProvenanceSuccess, (state, { response }) => ({
+        ...state,
+        options: response.options,
+        request: response.request,
+        loadedTimestamp: response.loadedTimestamp,
+        status: response.status,
+        activeProvenance: response.activeProvenance,
+        completedProvenance: response.completedProvenance,
+*/
     }))
 );

@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
-import { ProvenanceEventSummary } from '../../../../state/shared';
+import {ControllerServiceEntity, ProvenanceEventSummary} from '../../../../state/shared';
 import { NodeSearchResult } from '../../../../state/cluster-summary';
+import {BreadcrumbEntity} from "../../../flow-designer/state/shared";
+import {ParameterContextReferenceEntity} from "@nifi/shared";
 
 export const provenanceEventListingFeatureKey = 'provenanceEventListing';
 

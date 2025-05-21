@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, DestroyRef, EventEmitter, inject, Input, Output, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, EventEmitter, inject, Input, Output, ViewChild, OnDestroy, OnInit } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { TextTip, NiFiCommon } from '@nifi/shared';
@@ -41,6 +41,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
 import { ErrorContextKey } from '../../../../../state/error';
+import {
+    resetProvenanceState, startPollingProvenanceQuery,
+    startProvenancePolling, stopPollingProvenanceQuery,
+    stopProvenancePolling
+} from "../../../state/provenance-event-listing/provenance-event-listing.actions";
+import {Store} from "@ngrx/store";
+import {NiFiState} from "../../../../../state";
+import {loadClusterSummary} from "../../../../../state/cluster-summary/cluster-summary.actions";
 
 @Component({
     selector: 'provenance-event-table',
@@ -66,7 +74,7 @@ import { ErrorContextKey } from '../../../../../state/error';
     ],
     styleUrls: ['./provenance-event-table.component.scss']
 })
-export class ProvenanceEventTable implements AfterViewInit {
+export class ProvenanceEventTable implements AfterViewInit, OnInit, OnDestroy {
     @Input() set events(events: ProvenanceEventSummary[]) {
         if (events) {
             this.dataSource.data = this.sortEvents(events, this.sort);
@@ -223,9 +231,21 @@ export class ProvenanceEventTable implements AfterViewInit {
 
     constructor(
         private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon
+        private nifiCommon: NiFiCommon,
+        private store: Store<NiFiState>
     ) {
         this.filterForm = this.formBuilder.group({ filterTerm: '', filterColumn: this.filterColumnOptions[0] });
+    }
+
+    ngOnInit(): void {
+        this.store.dispatch(startProvenancePolling());
+        console.log("initialize");
+    }
+
+    ngOnDestroy(): void {
+        console.log("end");
+        this.store.dispatch(stopProvenancePolling());
+        this.store.dispatch(resetProvenanceState());
     }
 
     ngAfterViewInit(): void {

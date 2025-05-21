@@ -146,6 +146,7 @@ export class ProvenanceEventListing implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        console.log("initializing in the component");
         this.store.dispatch(loadClusterSummary());
     }
 
@@ -222,6 +223,7 @@ export class ProvenanceEventListing implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        console.log("destroying lineage in component");
         this.stateReset = true;
         this.store.dispatch(resetProvenanceState());
         this.store.dispatch(resetLineage());

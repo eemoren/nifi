@@ -18,11 +18,12 @@
 import { createAction, props } from '@ngrx/store';
 import {
     GoToProvenanceEventSourceRequest,
-    OpenSearchRequest,
+    OpenSearchRequest, ProvenanceEventListingState,
     ProvenanceEventRequest,
     ProvenanceOptionsResponse,
     ProvenanceQueryResponse,
-    ProvenanceRequest
+    ProvenanceRequest,
+    ProvenanceResults
 } from './index';
 
 export const resetProvenanceState = createAction('[Provenance Event Listing] Reset Provenance State');
@@ -32,6 +33,20 @@ export const loadProvenanceOptions = createAction('[Provenance Event Listing] Lo
 export const loadProvenanceOptionsSuccess = createAction(
     '[Provenance Event Listing] Load Provenance Options Success',
     props<{ response: ProvenanceOptionsResponse }>()
+);
+
+
+export const loadProvenanceEvent = createAction(
+    '[Provenance Event Listing] Load Provenance Event Listing',
+    //props<{ request: ProvenanceEventListingState }>()
+    props<{ request: ProvenanceRequest }>()
+    //props<{ response: LoadProvenanceRequest }>()
+    );
+
+export const loadProvenanceSuccess = createAction(
+    '[Provenance Event Listing] Load Provenance Event Listing Success',
+    props<{ response: ProvenanceQueryResponse }>()
+    //props<{ response: LoadProvenanceResponse }>()
 );
 
 export const submitProvenanceQuery = createAction(
@@ -48,6 +63,11 @@ export const submitProvenanceQuerySuccess = createAction(
     '[Provenance Event Listing] Submit Provenance Query Success',
     props<{ response: ProvenanceQueryResponse }>()
 );
+export const reloadProvenance = createAction("[Provenance Event Listing] Reload Provenance");
+
+export const startProvenancePolling = createAction("[Provenance Event Listing] Start Provenance Event Listing Polling");
+
+export const stopProvenancePolling = createAction("[Provenance Event Listing] Stop Provenance Event Listing Polling");
 
 export const startPollingProvenanceQuery = createAction('[Provenance Event Listing] Start Polling Provenance Query');
 

@@ -19,7 +19,20 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ProvenanceEventListingActions from './provenance-event-listing.actions';
-import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
+import {
+    asyncScheduler,
+    catchError,
+    filter,
+    from,
+    interval,
+    map,
+    of,
+    switchMap,
+    take,
+    takeUntil,
+    tap,
+    throttleTime
+} from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
@@ -27,10 +40,12 @@ import { Router } from '@angular/router';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ProvenanceService } from '../../service/provenance.service';
 import {
+    selectActiveProvenance,
     selectActiveProvenanceId,
     selectClusterNodeIdFromActiveProvenance,
     selectProvenanceOptions,
     selectProvenanceRequest,
+    selectStatus,
     selectTimeOffset
 } from './provenance-event-listing.selectors';
 import { Provenance, ProvenanceRequest } from './index';
@@ -46,6 +61,9 @@ import { selectClusterSummary } from '../../../../state/cluster-summary/cluster-
 import { ClusterService } from '../../../../service/cluster.service';
 import { Attribute } from '../../../../state/shared';
 import { ErrorContextKey } from '../../../../state/error';
+import {selectDocumentVisibilityState} from "../../../../state/document-visibility/document-visibility.selectors";
+import {DocumentVisibility} from "../../../../state/document-visibility";
+import {selectStatusHistoryState} from "../../../../state/status-history/status-history.selectors";
 
 @Injectable()
 export class ProvenanceEventListingEffects {
@@ -59,6 +77,69 @@ export class ProvenanceEventListingEffects {
         private dialog: MatDialog,
         private router: Router
     ) {}
+
+
+    loadProvenanceEvent$ = createEffect(() =>
+            this.actions$.pipe(
+                ofType(ProvenanceEventListingActions.loadProvenanceEvent),
+              /*  concatLatestFrom(() => [
+                    this.store.select(selectActiveProvenanceId).pipe(isDefinedAndNotNull()),
+                    this.store.select(selectClusterNodeIdFromActiveProvenance),
+                    this.store.select(selectStatusHistoryState)
+                ]),*/
+                map((action) => action.request),
+                switchMap((request) => {
+                    console.log("submitting Prov Query from extra method");
+                    //ProvenanceEventListingActions.pollProvenanceQuery();
+
+                    return from(this.provenanceService.submitProvenanceQuery(request)).pipe(
+                        map((response) =>
+                            ProvenanceEventListingActions.submitProvenanceQuerySuccess({
+                                response: {
+                                    provenance: response.provenance
+                                }
+                            })
+                        ),
+                        catchError((errorResponse: HttpErrorResponse) => {
+                            if (this.errorHelper.showErrorInContext(errorResponse.status)) {
+                                return of(
+                                    ProvenanceEventListingActions.provenanceApiError({
+                                        error: this.errorHelper.getErrorString(errorResponse)
+                                    })
+                                );
+                            } else {
+                                this.store.dispatch(ProvenanceEventListingActions.stopPollingProvenanceQuery());
+
+                                return of(this.errorHelper.fullScreenError(errorResponse));
+                            }
+                        })
+
+                )}
+                )))
+
+        /*this.actions$.pipe(
+            ofType(ProvenanceEventListingActions.loadProvenanceEvent),
+            //map((action) => action.request),
+            concatLatestFrom(() => this.store.select(selectStatus)),
+            switchMap(() =>
+                from(this.provenanceService.getSearchOptions()).pipe(
+                    map((response) =>
+                        ProvenanceEventListingActions.loadProvenanceSuccess({
+                            response
+                        })
+                    ),
+                    catchError(() =>
+                        of(
+                            ProvenanceEventListingActions.loadProvenanceSuccess({
+                                response: {
+                                    provenance: undefined
+                                }
+                            })
+                )
+            )
+        )
+    ))*/
+
 
     loadProvenanceOptions$ = createEffect(() =>
         this.actions$.pipe(
@@ -91,6 +172,7 @@ export class ProvenanceEventListingEffects {
             ofType(ProvenanceEventListingActions.submitProvenanceQuery),
             map((action) => action.request),
             switchMap((request) => {
+                console.log("submitting Prov Query");
                 const dialogReference = this.dialog.open(CancelDialog, {
                     data: {
                         title: 'Provenance',
@@ -253,6 +335,44 @@ export class ProvenanceEventListingEffects {
             }),
             switchMap(() => of(ProvenanceEventListingActions.deleteProvenanceQuerySuccess()))
         )
+    );
+
+
+    reloadProvenanceEventListing$ = createEffect(() => {
+        return this.actions$.pipe(
+            ofType(ProvenanceEventListingActions.reloadProvenance),
+            throttleTime(1000),
+            concatLatestFrom(() => [
+                this.store.select(selectActiveProvenanceId),
+                this.store.select(selectClusterNodeIdFromActiveProvenance)
+            ]),
+            switchMap(([, processGroupId]) => {
+                return of(
+                    ProvenanceEventListingActions.loadProvenanceEvent({
+                        request: {
+                            maxResults: 1000,
+                            summarize: false,
+                            incrementalResults: false
+                        }
+                    })
+                );
+            })
+        )}
+    );
+
+
+    startProvenancePolling$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ProvenanceEventListingActions.startProvenancePolling),
+            switchMap(() =>
+                 interval(10000, asyncScheduler).pipe(
+                        takeUntil(this.actions$.pipe(ofType(ProvenanceEventListingActions.stopProvenancePolling)))
+                    )
+            ),
+            concatLatestFrom(() => this.store.select(selectDocumentVisibilityState)),
+            filter(([, documentVisibility]) => documentVisibility.documentVisibility === DocumentVisibility.Visible),
+            switchMap(() => of(ProvenanceEventListingActions.reloadProvenance()))
+        ),
     );
 
     loadClusterNodesAndOpenSearchDialog$ = createEffect(() =>
