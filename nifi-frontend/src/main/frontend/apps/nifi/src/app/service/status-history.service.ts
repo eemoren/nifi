@@ -19,6 +19,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Client } from './client.service';
 import { ComponentType } from '@nifi/shared';
+import {StatusHistoryEntity} from "../state/status-history";
+import {Observable} from "rxjs";
 
 @Injectable({ providedIn: 'root' })
 export class StatusHistoryService {
@@ -50,6 +52,10 @@ export class StatusHistoryService {
         return this.httpClient.get(
             `${StatusHistoryService.API}/flow/${componentPath}/${encodeURIComponent(componentId)}/status/history`
         );
+    }
+    // Fetch the status history for a given component and type
+    getStatusHistory(componentId: string, componentType: string): Observable<StatusHistoryEntity> {
+        return this.httpClient.get<StatusHistoryEntity>(`${StatusHistoryService.API}/${componentType}/${componentId}`);
     }
 
     getNodeStatusHistory() {

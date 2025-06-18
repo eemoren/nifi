@@ -25,6 +25,16 @@ export interface StatusHistoryRequest {
     componentType: ComponentType;
 }
 
+export interface LoadStatusHistoryRequest {
+    source?: string;
+    componentId: string;
+    componentType: ComponentType;
+    after?: number;
+    groupId?: string;
+    sourceId?: string;
+    sourceName?: string;
+}
+
 export interface NodeStatusHistoryRequest {
     source: string;
 }
@@ -74,6 +84,17 @@ export interface StatusHistoryResponse {
 
 export interface StatusHistoryState {
     statusHistory: StatusHistoryEntity;
+    StatusHistoryItems: StatusHistoryItem[];
+    autoRefresh: boolean;
     loadedTimestamp: string;
     status: 'pending' | 'loading' | 'error' | 'success';
+}
+
+export interface StatusHistoryItem {
+    item: StatusHistoryRequest | StatusHistoryEvent;
+}
+
+export interface StatusHistoryEvent {
+    type: 'auto-refresh';
+    message: string;
 }

@@ -16,9 +16,14 @@
  */
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
-import { StatusHistoryEntity, statusHistoryFeatureKey, StatusHistoryState } from './index';
+import {StatusHistoryEntity, statusHistoryFeatureKey, StatusHistoryRequest, StatusHistoryState} from './index';
+import {selectCurrentRoute} from "@nifi/shared";
+import {SelectedComponent} from "../../pages/flow-designer/state/flow";
 
 export const selectStatusHistoryState = createFeatureSelector<StatusHistoryState>(statusHistoryFeatureKey);
+
+export const selectStatusHistoryRequest = createFeatureSelector<StatusHistoryRequest>(statusHistoryFeatureKey);
+
 
 export const selectStatusHistory = createSelector(
     selectStatusHistoryState,
@@ -34,3 +39,17 @@ export const selectStatusHistoryFieldDescriptors = createSelector(
     selectStatusHistory,
     (state: StatusHistoryEntity) => state.statusHistory?.fieldDescriptors
 );
+
+export const selectStatusHistoryComponentType = createSelector(
+    selectStatusHistoryRequest,
+    (state: StatusHistoryRequest) => state.componentType
+);
+export const selectStatusHistoryComponentID = createSelector(
+    selectStatusHistoryRequest,
+    (state: StatusHistoryRequest) => state.componentId
+);
+
+/*export const selectStatusHistorySource = createSelector(
+    selectStatusHistoryState,
+    (state: StatusHistoryRequest) => state.statusHistoryItems
+);*/

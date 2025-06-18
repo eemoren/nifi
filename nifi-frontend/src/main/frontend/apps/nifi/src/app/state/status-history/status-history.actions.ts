@@ -16,13 +16,33 @@
  */
 
 import { createAction, props } from '@ngrx/store';
-import { NodeStatusHistoryRequest, StatusHistoryRequest, StatusHistoryResponse } from './index';
+import {
+    LoadStatusHistoryRequest,
+    NodeStatusHistoryRequest,
+    StatusHistoryRequest,
+    StatusHistoryResponse,
+    StatusHistoryState
+} from './index';
 
 const STATUS_HISTORY_PREFIX = '[Status History]';
 
 export const reloadStatusHistory = createAction(
     `${STATUS_HISTORY_PREFIX} Reload Status History`,
     props<{ request: StatusHistoryRequest }>()
+);
+
+
+export const startStatusHistoryPolling = createAction(
+    "[StatusHistory] Start Status History Polling",
+    props<{ componentId: string, componentType: string }>()
+    );
+
+export const stopStatusHistoryPolling = createAction("[StatusHistory] Stop Status History Polling",
+);
+
+export const setStatusHistoryAutoRefresh = createAction(
+    `${STATUS_HISTORY_PREFIX} Set Auto-Refresh`,
+    props<{ autoRefresh: boolean}>()
 );
 
 export const getStatusHistoryAndOpenDialog = createAction(

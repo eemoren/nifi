@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, DestroyRef, HostListener, inject, Inject, OnInit } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { StatusHistoryService } from '../../../service/status-history.service';
-import { AsyncPipe, NgStyle } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
+import {AfterViewInit, Component, DestroyRef, HostListener, inject, Inject, OnDestroy, OnInit} from '@angular/core';
+import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
+import {StatusHistoryService} from '../../../service/status-history.service';
+import {AsyncPipe, NgStyle} from '@angular/common';
+import {MatButtonModule} from '@angular/material/button';
 import {
     FieldDescriptor,
     NodeSnapshot,
@@ -27,28 +27,42 @@ import {
     StatusHistoryRequest,
     StatusHistoryState
 } from '../../../state/status-history';
-import { Store } from '@ngrx/store';
-import { reloadStatusHistory } from '../../../state/status-history/status-history.actions';
-import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import {Store} from '@ngrx/store';
+import {
+    reloadStatusHistory,
+    setStatusHistoryAutoRefresh,
+    startStatusHistoryPolling,
+    stopStatusHistoryPolling
+} from '../../../state/status-history/status-history.actions';
+import {NgxSkeletonLoaderModule} from 'ngx-skeleton-loader';
 import {
     selectStatusHistory,
     selectStatusHistoryComponentDetails,
     selectStatusHistoryFieldDescriptors,
     selectStatusHistoryState
 } from '../../../state/status-history/status-history.selectors';
-import { initialState } from '../../../state/status-history/status-history.reducer';
-import { filter, take } from 'rxjs';
-import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
+import {initialState} from '../../../state/status-history/status-history.reducer';
+import {filter, take} from 'rxjs';
+import {FormBuilder, FormGroup, ReactiveFormsModule} from '@angular/forms';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatSelectModule} from '@angular/material/select';
 import * as d3 from 'd3';
-import { isDefinedAndNotNull, CloseOnEscapeDialog, NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
-import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
-import { Instance, NIFI_NODE_CONFIG, Stats } from './index';
-import { StatusHistoryChart } from './status-history-chart/status-history-chart.component';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ErrorContextKey } from '../../../state/error';
-import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
+import {
+    CloseOnEscapeDialog,
+    ComponentType,
+    isDefinedAndNotNull,
+    NiFiCommon,
+    NifiTooltipDirective,
+    TextTip,
+} from '@nifi/shared';
+import {MatCheckboxChange, MatCheckboxModule} from '@angular/material/checkbox';
+import {Instance, NIFI_NODE_CONFIG, Stats} from './index';
+import {StatusHistoryChart} from './status-history-chart/status-history-chart.component';
+import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
+import {ErrorContextKey} from '../../../state/error';
+import {ContextErrorBanner} from '../context-error-banner/context-error-banner.component';
+import {MatSlideToggle, MatSlideToggleChange} from "@angular/material/slide-toggle";
+import {ActivatedRoute} from "@angular/router";
 
 @Component({
     selector: 'status-history',
@@ -65,17 +79,20 @@ import { ContextErrorBanner } from '../context-error-banner/context-error-banner
         MatCheckboxModule,
         StatusHistoryChart,
         NgStyle,
-        ContextErrorBanner
+        ContextErrorBanner,
+        MatSlideToggle
     ],
     styleUrls: ['./status-history.component.scss']
 })
-export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterViewInit {
+export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterViewInit, OnDestroy /*OnChanges*/ {
     request: StatusHistoryRequest;
     statusHistoryState$ = this.store.select(selectStatusHistoryState);
     componentDetails$ = this.store.select(selectStatusHistoryComponentDetails);
     statusHistory$ = this.store.select(selectStatusHistory);
     fieldDescriptors$ = this.store.select(selectStatusHistoryFieldDescriptors);
     fieldDescriptors: FieldDescriptor[] = [];
+
+    autoRefresh = true;
 
     dialogMaximized = false;
 
@@ -195,6 +212,8 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterV
         this.componentDetails$.pipe(isDefinedAndNotNull(), take(1)).subscribe((details) => {
             this.details = Object.entries(details).map((entry) => ({ key: entry[0], value: entry[1] }));
         });
+
+        this.store.dispatch(startStatusHistoryPolling());
     }
 
     ngAfterViewInit(): void {
@@ -207,6 +226,10 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterV
                     this.selectedDescriptor = descriptor;
                 }
             });
+    }
+
+    ngOnDestroy(): void {
+        this.store.dispatch(stopStatusHistoryPolling());
     }
 
     maximize() {
@@ -307,6 +330,30 @@ export class StatusHistory extends CloseOnEscapeDialog implements OnInit, AfterV
             }
         }
         return 'unset neutral-color';
+    }
+
+    autoRefreshToggle(event: MatSlideToggleChange) {
+        this.autoRefresh = event.checked;
+        this.store.dispatch(setStatusHistoryAutoRefresh({
+            autoRefresh: this.autoRefresh
+        }));
+    }
+
+    // Method to determine the component type based on the componentId or other criteria
+    determineComponentType(componentId: string): ComponentType {
+        // Example logic: Match the componentId with a predefined set of rules for component types
+        // For demonstration, you can have a simple map or match logic to determine the component type
+
+        // Example logic (you can replace this with real logic or data):
+        if (componentId.startsWith('processor')) {
+            return ComponentType.Processor;
+        } else if (componentId.startsWith('controllerService')) {
+            return ComponentType.ControllerService;
+        } else if (componentId.startsWith('reportingTask')) {
+            return ComponentType.ReportingTask;
+        } else {
+            return ComponentType.Processor;  // Default to Processor if no match
+        }
     }
 
     protected readonly NIFI_NODE_CONFIG = NIFI_NODE_CONFIG;

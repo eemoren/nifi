@@ -207,6 +207,11 @@
                     <div class="flex-1">
                         @if (instances.length > 0 && fieldDescriptors.length > 0) {
                             <div class="text-sm flex items-center gap-x-2">
+                                <div class="mr-6">
+                                    <mat-slide-toggle [checked]="autoRefresh" (change)="autoRefreshToggle($event)"
+                                    >Auto-refresh</mat-slide-toggle
+                                    >
+                                </div>
                                 <button mat-icon-button class="primary-icon-button" (click)="refresh()">
                                     <i
                                         class="fa fa-refresh"

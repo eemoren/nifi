@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-import { StatusHistoryEntity, StatusHistoryState } from './index';
+import {StatusHistoryEntity, StatusHistoryEvent, StatusHistoryItem, StatusHistoryState} from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
     clearStatusHistory,
     getStatusHistoryAndOpenDialog,
     loadStatusHistorySuccess,
     reloadStatusHistory,
-    reloadStatusHistorySuccess,
+    reloadStatusHistorySuccess, setStatusHistoryAutoRefresh,
     statusHistoryBannerError,
     viewNodeStatusHistoryComplete,
     viewStatusHistoryComplete
@@ -31,7 +31,9 @@ import {
 export const initialState: StatusHistoryState = {
     statusHistory: {} as StatusHistoryEntity,
     status: 'pending',
-    loadedTimestamp: ''
+    loadedTimestamp: '',
+    autoRefresh: true,
+    StatusHistoryItems: []
 };
 
 export const statusHistoryReducer = createReducer(
@@ -60,5 +62,18 @@ export const statusHistoryReducer = createReducer(
 
     on(viewStatusHistoryComplete, viewNodeStatusHistoryComplete, () => ({
         ...initialState
-    }))
+    })),
+
+    on(setStatusHistoryAutoRefresh, (state: StatusHistoryState, { autoRefresh }) => {
+        const event: StatusHistoryEvent = {
+            type: 'auto-refresh',
+            message: autoRefresh ? `Auto-refresh started` : 'Auto-refresh stopped'
+        };
+        const item: StatusHistoryItem = { item: event};
+        return {
+            ...state,
+            statusHistoryItems: [...state.StatusHistoryItems, item],
+            autoRefresh
+        };
+})
 );
